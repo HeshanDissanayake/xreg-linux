@@ -27,8 +27,8 @@ while read -r id bin inp args; do
     fi
     echo "xreg: job $id $bin"
     xroitag "$id"
-    # shellcheck disable=SC2086
-    ./prog $args > /tmp/job.out 2>&1
+    # through sh -c, so arguments may redirect stdin ("< input.pcm")
+    sh -c "./prog $args" > /tmp/job.out 2>&1
     echo $? > /tmp/job.rc
     hostfs put /tmp/job.out "out/$id.out" >/dev/null
     hostfs put /tmp/job.rc "out/$id.rc" >/dev/null
