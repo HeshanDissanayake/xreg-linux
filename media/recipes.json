@@ -630,6 +630,6 @@
    "linux/work/src/media/minimap2/test/MT-human.fa",
    "linux/work/src/media/minimap2/test/MT-orang.fa"
   ],
-  "args": "-a -t 1 MT-human.fa MT-orang.fa"
+  "args": "-a -t 1 -o out.sam MT-human.fa MT-orang.fa"
  }
 }

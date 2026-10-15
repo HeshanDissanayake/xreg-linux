@@ -16,13 +16,19 @@ __attribute__((constructor)) static void xreg_stdio_init(void)
 }
 
 #ifdef ROI_WHOLE_MAIN
+#include <stdlib.h>
+
 int __real_main(int argc, char **argv, char **envp);
+
+/* The region ends at exit, whether main returns or calls exit() itself
+ * (gsm, adpcm). atexit handlers run before musl flushes stdio, so the final
+ * flush stays outside the region, as on bare metal. */
+static void xreg_roi_exit(void) { xroi_end(); }
 
 int __wrap_main(int argc, char **argv, char **envp)
 {
+    atexit(xreg_roi_exit);
     xroi_begin();
-    int r = __real_main(argc, argv, envp);
-    xroi_end();
-    return r;
+    return __real_main(argc, argv, envp);
 }
 #endif

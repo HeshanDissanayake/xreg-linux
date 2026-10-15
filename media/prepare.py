@@ -44,6 +44,15 @@ PKGS = {
              [["make", "CC=@CC", "AR=@AR", "BRHIST_SWITCH=", "LIBTERMCAP="]]),
     "tiff": ("mibench/consumer/tiff-v3.5.4",
              [["sh", "-c", "CC=@CC ./configure --noninteractive --target=riscv64-linux"],
+              # cross-configured, libtiff 3.5.4 guesses big-endian; RISC-V is little-endian
+              ["sed", "-i", "-e", "s/^#define HOST_BIGENDIAN.*/#define HOST_BIGENDIAN\t0/",
+               "-e", "s/^#define HOST_FILLORDER.*/#define HOST_FILLORDER FILLORDER_LSB2MSB/",
+               "libtiff/port.h"],
+              # libtiff 3.5.4 makes int32 a long except on Alpha/MIPS64: 8 bytes on
+              # RV64; take its own 64-bit branch on any LP64 target (as later libtiff)
+              ["sed", "-i", "s/^#if defined(__alpha) || (defined(_MIPS_SZLONG) && _MIPS_SZLONG == 64)$/"
+                            "#if defined(__alpha) || defined(__LP64__) || (defined(_MIPS_SZLONG) \\&\\& _MIPS_SZLONG == 64)/",
+               "libtiff/tiff.h"],
               # the build runs mkg3states to generate tables: build that one on the host
               ["sh", "-c", "cd libtiff && cc -I. -o mkg3states mkg3states.c && "
                            "./mkg3states -c const tif_fax3sm.c && cc -I. -o mkversion mkversion.c && "
@@ -194,7 +203,7 @@ def main():
         recipes[name] = dict(r, inputs=inputs, args=args, suite="media")
     recipes["mm2-mt"] = dict(minimap2_recipe(), suite="minimap2",
                              inputs=[os.path.join(SRC, "minimap2", "test", f) for f in ("MT-human.fa", "MT-orang.fa")],
-                             args="-a -t 1 MT-human.fa MT-orang.fa")
+                             args="-a -t 1 -o out.sam MT-human.fa MT-orang.fa")
     root = os.path.dirname(LINUX)
     for r in recipes.values():   # paths relative to the repo root (bench/benchmarks.py joins them)
         for k in ("srcs", "incs", "inputs"):
