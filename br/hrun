@@ -1,0 +1,3 @@
+#!/bin/sh
+# hrun <file> [args]: fetch the latest <file> from the host share and run it
+exec hostfs run "$@"

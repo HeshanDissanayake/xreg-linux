@@ -1,0 +1,75 @@
+# needed for hostfs shared buffer access from userspace
+CONFIG_DEVMEM=y
+# CONFIG_STRICT_DEVMEM is not set
+# slim down: Spike has no PCI/USB/GPU/sound/net hardware
+# CONFIG_MODULES is not set
+# CONFIG_PCI is not set
+# CONFIG_USB_SUPPORT is not set
+# CONFIG_DRM is not set
+# CONFIG_FB is not set
+# CONFIG_SOUND is not set
+# CONFIG_MMC is not set
+# CONFIG_NET is not set
+# CONFIG_NETWORK_FILESYSTEMS is not set
+# CONFIG_BTRFS_FS is not set
+# CONFIG_EXT4_FS is not set
+# CONFIG_VIRTIO_MENU is not set
+# CONFIG_INPUT is not set
+# CONFIG_HID_SUPPORT is not set
+# CONFIG_MTD is not set
+# CONFIG_ATA is not set
+# CONFIG_SCSI is not set
+# CONFIG_BLK_DEV_NVME is not set
+# CONFIG_DEBUG_INFO is not set
+# CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT is not set
+# CONFIG_KVM is not set
+# CONFIG_BPF_SYSCALL is not set
+# CONFIG_CGROUPS is not set
+# CONFIG_NAMESPACES is not set
+# CONFIG_FTRACE is not set
+# CONFIG_PROFILING is not set
+# CONFIG_SECURITY is not set
+# CONFIG_CRYPTO_ALGAPI is not set
+# CONFIG_SOC_MICROCHIP_POLARFIRE is not set
+# CONFIG_ARCH_SIFIVE is not set
+# CONFIG_ARCH_STARFIVE is not set
+# CONFIG_ARCH_SUNXI is not set
+# CONFIG_ARCH_THEAD is not set
+# CONFIG_ARCH_VIRT is not set
+# CONFIG_SOC_CANAAN is not set
+# CONFIG_ARCH_RENESAS is not set
+# second pass: firmware interfaces / subsystems Spike does not have
+# CONFIG_ACPI is not set
+# CONFIG_EFI is not set
+# CONFIG_MD is not set
+# CONFIG_LIBNVDIMM is not set
+# CONFIG_OVERLAY_FS is not set
+# CONFIG_IO_URING is not set
+# CONFIG_VFAT_FS is not set
+# CONFIG_MSDOS_FS is not set
+# CONFIG_FAT_FS is not set
+# CONFIG_COMPAT is not set
+# CONFIG_HUGETLBFS is not set
+# CONFIG_STRICT_KERNEL_RWX is not set
+# CONFIG_REGULATOR is not set
+# CONFIG_GPIOLIB is not set
+# CONFIG_SPI is not set
+# CONFIG_I2C is not set
+# CONFIG_PWM is not set
+# CONFIG_RESET_CONTROLLER is not set
+# CONFIG_WATCHDOG is not set
+# CONFIG_RTC_CLASS is not set
+# CONFIG_HW_RANDOM is not set
+# CONFIG_BLK_DEV_LOOP is not set
+# CONFIG_AUTOFS_FS is not set
+# CONFIG_FUSE_FS is not set
+# CONFIG_SYSVIPC is not set
+# CONFIG_POSIX_MQUEUE is not set
+# CONFIG_AUDIT is not set
+CONFIG_NR_CPUS=8
+# v5 (xreg Spike, 2021 base: no UART in its device tree): console over SBI
+CONFIG_RISCV_SBI_V01=y
+CONFIG_HVC_RISCV_SBI=y
+CONFIG_SERIAL_EARLYCON_RISCV_SBI=y
+CONFIG_CMDLINE="console=hvc0 earlycon=sbi"
+CONFIG_CMDLINE_EXTEND=y

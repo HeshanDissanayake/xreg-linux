@@ -1,0 +1,42 @@
+#!/bin/sh
+# v5 job runner. If the host share has jobs.txt, run every job and power off;
+# otherwise do nothing (normal interactive boot).
+#
+# jobs.txt, one job per line:   <id> <binary> <inputdir|-> [args...]
+#   <binary>, <inputdir>: paths in the share. Every file of <inputdir> is
+#   copied into the job's working directory first (inputs).
+# Results back to the share: out/<id>.out (stdout+stderr), out/<id>.rc (exit
+# code), out/<id>.files/ (any file the program wrote whose name starts with
+# "out"), and out/DONE when the list is finished.
+#
+# Counting: the benchmark itself marks its region (xroi.begin / xroi.end);
+# xroitag <id> beforehand names the Spike stats file <stats>.<id>. Nothing
+# here (copying, shell) is inside a region.
+case "$1" in start) ;; *) exit 0 ;; esac
+hostfs get jobs.txt /tmp/jobs.txt >/dev/null 2>&1 || exit 0
+echo "xreg: running jobs from the host share"
+hostfs mkdir out >/dev/null 2>&1
+while read -r id bin inp args; do
+    case "$id" in ''|'#'*) continue ;; esac
+    rm -rf /tmp/run && mkdir -p /tmp/run && cd /tmp/run || continue
+    hostfs get "$bin" ./prog >/dev/null && chmod +x ./prog
+    if [ "$inp" != "-" ]; then
+        hostfs ls "$inp" | while read -r t sz f; do
+            [ "$t" = f ] && hostfs get "$inp/$f" "./$f" >/dev/null
+        done
+    fi
+    echo "xreg: job $id $bin"
+    xroitag "$id"
+    # shellcheck disable=SC2086
+    ./prog $args > /tmp/job.out 2>&1
+    echo $? > /tmp/job.rc
+    hostfs put /tmp/job.out "out/$id.out" >/dev/null
+    hostfs put /tmp/job.rc "out/$id.rc" >/dev/null
+    for f in out*; do
+        [ -f "$f" ] && { hostfs mkdir "out/$id.files" >/dev/null 2>&1; hostfs put "$f" "out/$id.files/$f" >/dev/null; }
+    done
+    cd /
+done < /tmp/jobs.txt
+echo done > /tmp/done && hostfs put /tmp/done out/DONE >/dev/null
+echo "xreg: all jobs done, powering off"
+poweroff -f
