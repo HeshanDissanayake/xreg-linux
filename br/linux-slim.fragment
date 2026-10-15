@@ -71,5 +71,7 @@ CONFIG_NR_CPUS=8
 CONFIG_RISCV_SBI_V01=y
 CONFIG_HVC_RISCV_SBI=y
 CONFIG_SERIAL_EARLYCON_RISCV_SBI=y
-CONFIG_CMDLINE="console=hvc0 earlycon=sbi"
+# norandmaps: no address-space randomization, so every binary gets the same
+# stack/heap/mmap placement (comparable runs across compiler versions)
+CONFIG_CMDLINE="console=hvc0 earlycon=sbi norandmaps"
 CONFIG_CMDLINE_EXTEND=y

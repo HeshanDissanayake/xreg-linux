@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 from xreg_bench import CLANG, cfg_flags  # noqa: E402
 
 LLVM_BIN = os.path.dirname(CLANG)
-TARGET = ["--target=riscv64-unknown-linux-musl", "-mabi=lp64", "-mno-relax"]
+TARGET = ["--target=riscv64-unknown-linux-musl", "-mabi=lp64", "-mno-relax", "-fno-pie"]
 MUSL_SRC = os.path.join(W, "src", "musl-1.2.5")
 BUILTINS = os.path.join(W, "builtins", "libclang_rt.builtins.a")
 # not needed / not buildable for a static, freestanding RV64 Linux user program
@@ -42,7 +42,7 @@ def builtins():
     src = os.path.join(ROOT, "llvm-project", "compiler-rt", "lib", "builtins")
     out = os.path.join(W, "builtins", "obj")
     os.makedirs(out, exist_ok=True)
-    flags = [CLANG] + TARGET + ["-march=rv64g", "-O2", "-fPIC", "-ffreestanding", "-w", "-c"]
+    flags = [CLANG] + TARGET + ["-march=rv64g", "-O2", "-ffreestanding", "--sysroot=/nonexistent", "-w", "-c"]
     files = [f for f in sorted(glob.glob(os.path.join(src, "*.c"))) if os.path.basename(f) not in SKIP]
 
     def one(f):
@@ -67,7 +67,8 @@ def musl(name):
     shutil.rmtree(build, ignore_errors=True)
     os.makedirs(build)
     cc = " ".join([CLANG] + TARGET + flags)
-    env = dict(os.environ, CC=cc, AR=os.path.join(LLVM_BIN, "llvm-ar"),
+    # CFLAGS: musl adds -O2 by default, which would override the version's -O3
+    env = dict(os.environ, CC=cc, CFLAGS=f"-{cfg['opt']}", AR=os.path.join(LLVM_BIN, "llvm-ar"),
                RANLIB=os.path.join(LLVM_BIN, "llvm-ranlib"), LIBCC=BUILTINS)
     log = open(os.path.join(build, "build.log"), "w")
     subprocess.check_call([os.path.join(MUSL_SRC, "configure"), f"--prefix={prefix}",
