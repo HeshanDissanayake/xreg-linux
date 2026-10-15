@@ -610,14 +610,16 @@
    "linux/work/src/media/zlib/gzwrite.c"
   ],
   "incs": [
-   "linux/media/simde-shim",
-   "linux/work/src/media/minimap2/lib/simde/simde",
+   "linux/work/src/media/minimap2/lib/simde",
    "linux/work/src/media/minimap2",
    "linux/work/src/media/zlib"
   ],
   "defs": [
    "HAVE_KALLOC",
+   "USE_SIMDE",
    "SIMDE_ENABLE_NATIVE_ALIASES",
+   "SIMDE_NO_NATIVE",
+   "__SSE2__",
    "_FILE_OFFSET_BITS=64"
   ],
   "cflags": [

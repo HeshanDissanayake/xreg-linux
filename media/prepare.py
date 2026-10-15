@@ -167,14 +167,16 @@ def recipe(entries, target):
 def minimap2_recipe():
     mm = os.path.join(SRC, "minimap2")
     z = os.path.join(SRC, "zlib")
-    shim = os.path.join(HERE, "simde-shim")
     objs = ("kthread kalloc misc bseq sketch sdust options index lchain align hit seed map format "
             "pe esterr splitidx ksw2_ll_sse ksw2_extz2_sse ksw2_extd2_sse ksw2_exts2_sse main").split()
     zs = ("adler32 crc32 deflate infback inffast inflate inftrees trees zutil compress uncompr "
           "gzclose gzlib gzread gzwrite").split()
     return {"srcs": [os.path.join(mm, f"{o}.c") for o in objs] + [os.path.join(z, f"{s}.c") for s in zs],
-            "incs": [shim, os.path.join(mm, "lib", "simde", "simde"), mm, z],
-            "defs": ["HAVE_KALLOC", "SIMDE_ENABLE_NATIVE_ALIASES", "_FILE_OFFSET_BITS=64"],
+            # minimap2's own SIMDe path (USE_SIMDE); __SSE2__ enables its SSE2
+            # kernels, SIMDE_NO_NATIVE keeps SIMDe in portable C (no x86 intrinsics)
+            "incs": [os.path.join(mm, "lib", "simde"), mm, z],
+            "defs": ["HAVE_KALLOC", "USE_SIMDE", "SIMDE_ENABLE_NATIVE_ALIASES", "SIMDE_NO_NATIVE",
+                     "__SSE2__", "_FILE_OFFSET_BITS=64"],
             "cflags": ["-fsigned-char"]}
 
 
