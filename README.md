@@ -1,54 +1,48 @@
-# v5: measuring on Linux (Spike + Buildroot)
+# xreg-linux: Linux on the 256-register xreg Spike, for measuring compiled programs
 
-**Goal (owner, 2026-10-16):** measure the v3 compilers on Linux running on Spike instead of bare metal. Counting covers only the benchmark run (begin/end markers), never the boot.
+A small Buildroot Linux (kernel 6.6, BusyBox, OpenSBI 1.6; about 10 MB) that boots on the
+**xreg Spike** (RISC-V Spike with 256 integer registers through the `xpfx` prefix), plus the
+tools to run benchmark binaries on it and count **only while each benchmark runs**: never the
+boot, the shell or file transfers.
 
-**Owner's choices:**
-- musl, compiled by each compiler under test;
-- count everything in the benchmark window (program + kernel), with the kernel share as an extra column;
-- v5 = v3 compilers re-measured on Linux;
-- new benchmarks: codecs plus minimap2, small inputs, some FP allowed.
+It is the Linux part (v5) of a research project on compilers for large register files
+(an LLVM 23.1.3 fork using up to 256 RISC-V integer registers).
 
-## Layout (main checkout, branch `v5-linux`)
-- **Repos and builds at the top of LLVM-regsw:**
-  - `llvm-project` on branch `v5-linux` → `llvm-build` (`linux/build_llvm.sh`);
-  - `spike-xreg` on branch `claude/v5-linux` → `install-xreg` (bare metal) and `install-xreg-ma` (Linux runs, hardware misaligned accesses, D29), both by `linux/build_spike.sh`.
-- `linux/` (tracked): scripts, configs, the guest overlay, hostfs, the media recipes, this file.
-- `linux/work/` (ignored, rebuildable):
-  - `buildroot/`: the Linux build (`linux/build_linux.sh`);
-  - `hostfs/`: the plugin and guest tool;
-  - `src/`: musl 1.2.5 and the media sources (`linux/media/fetch.sh`);
-  - `sysroot/<version>`: musl per compiler version, and `builtins/` (`linux/build_libs.py`);
-  - `media-prep/`: the prepared media sources (`linux/media/prepare.py`);
-  - `uapi/`: links to the kernel UAPI headers.
-- The first build was made in the job worktree `.claude/worktrees/reassessment`, which has its own clones of Spike and the compiler under `linux/work/`. They are now the branches above.
+## What is in here
+| Path | What |
+|---|---|
+| `br/` | Buildroot defconfig template, kernel config fragment (SBI console, `norandmaps`, slim), post-build script (no daemons), root overlay with the job runner `etc/init.d/S99xreg` |
+| `hostfs/` | **hostfs**: share a host directory with the guest through a Spike MMIO device; guest tool `hostfs`. `plugin/hostfs.cc` is for the current Spike device API; `plugin/hostfs_mmio.cc` is the port to the older (2021) plugin API that the xreg Spike uses |
+| `guest/xroitag.c` | guest tool: tags the next measured region so Spike writes that run's statistics to `<stats>.<id>` |
+| `host/xreg_linux.py` | host controller: boots Spike once per job (deterministic, byte-identical counts across boots), passes binaries and inputs through hostfs, collects outputs and per-run statistics |
+| `harness/` | startup code linked into every benchmark (stdout buffering; region = whole `main` for suites without their own markers) |
+| `media/` | MiBench media programs + minimap2: fetch (pinned), a recording build that turns each package into a per-program recipe, golden-output cross-check against gcc |
+| `build_*.sh`, `build_libs.py`, `run_*.sh` | build the compiler, Spike (normal + misaligned-capable), the Linux image, musl per compiler version |
+| `tests/` | region-counting tests (exact counts, kernel work under page faults/timer interrupts) |
+| `RESEARCH-NOTES.md` | the research notes for this part (decisions, verification, numbers) |
 
-**Rebuilt in the main checkout (2026-10-16), verified (EXP-043-mainverify):**
-- Same 11 benchmarks × r32/r256 as the job-worktree runs (EXP-041r/042r): crc32, statemate, pb-gemm, coremark, mc-x25519, tb-gsm_enc, chstone-adpcm, mb-gsm-enc, mb-madplay, mb-djpeg, mb-tiff2bw.
-- **Program-only gaps are identical to two decimals on all 11.** Program parts are identical in 17/22 runs; the rest differ by ≤ 18 loads/stores out of millions, the same on both sides.
-- musl and builtins: the disassembly is identical to the worktree builds (only embedded paths differ).
-- **Kernel parts shift by about one timer tick:** the rebuilt kernel has a new build timestamp, so boot timing and the timer phase move (INC-001, point 3). Compare "everything counted" numbers only within one build of the image.
+## How the measurement works
+1. Spike boots `fw_payload.elf` with a host directory attached through hostfs.
+2. At boot, `S99xreg` reads `jobs.txt` from the share. For each job it copies the binary and its
+   inputs, runs `xroitag <id>`, runs the program, and copies stdout, the exit code and any `out*`
+   files back. Then it powers off.
+3. The program marks its own region (`xroi.begin` / `xroi.end`). Spike counts instructions,
+   loads/stores (program and kernel separately), a PC histogram and an I-cache model only inside
+   it, and writes `<stats>.<id>` at its end.
 
-**Rebuild from scratch in the main checkout:**
+## Dependencies (not in this repo)
+- **Spike:** `github.com/HeshanDissanayake/riscv-isa-sim-dev`, branch `claude/v5-linux` (tag `xreg-v5`).
+  It has the trap-safe prefix, per-run statistics, `xroi.tag` and static-PIE loading.
+  Build it with `--enable-histogram --enable-misaligned`: Linux's emulation of misaligned accesses
+  cannot see the `xpfx` prefix.
+- **Compiler:** `github.com/HeshanDissanayake/llvm-project`, branch `v5-linux` (tag `xreg-v5`).
+- **Buildroot 2025.02** (its download cache), musl 1.2.5 (sha256 `a9a118bb…c75e4`).
+- The scripts expect to sit as `linux/` inside the research records repository: the benchmark
+  driver, the benchmark registry and `scripts/xreg_bench.py`, which is not published. The
+  `host/xreg_linux.py` controller and the image work on their own.
+
+## Ready-made image
+The release **`v5`** has `fw_payload.elf` (and its SHA-256) for the xreg Spike:
 ```sh
-sh linux/build_llvm.sh && sh linux/build_spike.sh
-rsync -a --exclude /output ~/working_dir/spike-linux/buildroot/ linux/work/buildroot/   # downloads + tree
-sh linux/build_linux.sh
-python3 linux/build_libs.py builtins && python3 linux/build_libs.py musl r32-v3 r256-v3
-sh linux/media/fetch.sh && python3 linux/media/prepare.py
+spike --extlib=libhostfs_mmio.so --device=hostfs,0x40000000,root=<share>,size=64M fw_payload.elf
 ```
-
-## Spike changes (`claude/v5-linux`)
-1. **Trap-safe prefix.** A trap that hits a prefixed instruction returns to the `xpfx`, so the pair re-executes as a unit. Before, a page fault or timer interrupt right after `xpfx` re-ran the instruction without its prefix, i.e. with the wrong registers.
-2. **`--xreg-stats-per-roi`.** Each `xroi.end` writes `<stats>.<n>` and resets the counters and the I-cache model, so one boot measures many runs.
-3. **New counters:**
-   - `roi_insns_kernel`: instructions in a mode other than the program's (kernel, OpenSBI);
-   - `roi_mem` / `roi_mem_kernel`: loads/stores decoded by Spike (incl. RVC). The kernel has no compiler tags, so the total needs these.
-
-   The PC histogram (used for the tag counts and profiles) keeps the program's own PCs only.
-
-**Bare-metal check:**
-- `tests/xreg` all pass;
-- 24 v3 runs (12 benchmarks × r32/r256) identical to EXP-039;
-- `roi_mem` = tag count on all 24.
-
-Build: `sh linux/build_spike.sh` (both Spikes).
