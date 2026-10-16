@@ -22,6 +22,12 @@
   - `uapi/`: links to the kernel UAPI headers.
 - The first build was made in the job worktree `.claude/worktrees/reassessment`, which has its own clones of Spike and the compiler under `linux/work/`. They are now the branches above.
 
+**Rebuilt in the main checkout (2026-10-16), verified (EXP-043-mainverify):**
+- Same 11 benchmarks × r32/r256 as the job-worktree runs (EXP-041r/042r): crc32, statemate, pb-gemm, coremark, mc-x25519, tb-gsm_enc, chstone-adpcm, mb-gsm-enc, mb-madplay, mb-djpeg, mb-tiff2bw.
+- **Program-only gaps are identical to two decimals on all 11.** Program parts are identical in 17/22 runs; the rest differ by ≤ 18 loads/stores out of millions, the same on both sides.
+- musl and builtins: the disassembly is identical to the worktree builds (only embedded paths differ).
+- **Kernel parts shift by about one timer tick:** the rebuilt kernel has a new build timestamp, so boot timing and the timer phase move (INC-001, point 3). Compare "everything counted" numbers only within one build of the image.
+
 **Rebuild from scratch in the main checkout:**
 ```sh
 sh linux/build_llvm.sh && sh linux/build_spike.sh
