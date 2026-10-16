@@ -38,6 +38,10 @@ PKGS = {
                           "--build=x86_64-unknown-linux-gnu --enable-fpm=64bit "
                           "--disable-nls --disable-debugging --disable-shared"],
              # checkout timestamps make the old automake files look stale: don't regenerate
+             # keep the shipped gperf output: a newer .gperf timestamp (fresh
+             # clone) would regenerate it with a modern gperf that no longer
+             # matches libid3tag's header
+             ["sh", "-c", "touch libid3tag/frametype.c libid3tag/compat.c"],
              ["make", "AR=@AR", "CFLAGS=-O2", "ACLOCAL=true", "AUTOMAKE=true", "AUTOCONF=true",
               "AUTOHEADER=true"]]),
     "lame": ("mibench/consumer/lame/lame3.70",
