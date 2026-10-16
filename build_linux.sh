@@ -13,7 +13,7 @@ cd "$BR"
 make toolchain -j"$J" > "$W/br-toolchain.log" 2>&1
 CC="$BR/output/host/bin/riscv64-linux-"
 # The xreg Spike (2021 base) has the older MMIO plugin API: hostfs_mmio.cc.
-S="$W/spike-xreg"
+S="$(dirname "$HERE")/spike-xreg"   # LLVM-regsw/spike-xreg, branch claude/v5-linux
 mkdir -p "$W/hostfs"
 g++ -std=c++17 -O2 -g -fPIC -shared -I"$S" -I"$S/build" -I"$HERE/hostfs/plugin" \
     -o "$W/hostfs/libhostfs_mmio.so" "$HERE/hostfs/plugin/hostfs_mmio.cc" > "$W/hostfs-build.log" 2>&1

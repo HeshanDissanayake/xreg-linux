@@ -5,7 +5,7 @@
 #   SHARE=<dir> STATS=<path-prefix> linux/run_spike.sh [extra spike args]
 HERE="$(cd "$(dirname "$0")" && pwd)"
 W="$HERE/work"
-: "${SPIKE:=$W/install-spike/bin/spike}"
+: "${SPIKE:=$(dirname "$HERE")/install-xreg-ma/bin/spike}"
 : "${SHARE:=$W/share}"
 : "${HOSTFS_BUF:=64M}"
 mkdir -p "$SHARE"
